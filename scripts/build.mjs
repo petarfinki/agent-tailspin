@@ -30,6 +30,8 @@ await build({
     __DEMO_GZ_B64__: JSON.stringify(zlib.gzipSync(fs.readFileSync("fixtures/demo/demo.jsonl")).toString("base64")),
   },
   legalComments: "none",
+  // Only the from-source dev path imports esbuild (to bundle the client on the fly); never at runtime here.
+  external: ["esbuild"],
 });
 fs.chmodSync("dist/cli.js", 0o755);
 console.log(`dist/cli.js ${(fs.statSync("dist/cli.js").size / 1024).toFixed(0)} KB (client ${(clientJs.length / 1024).toFixed(1)} KB)`);

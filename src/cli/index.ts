@@ -17,6 +17,7 @@ import { fmtDuration, linkLine, summary } from "./summary.js";
 
 declare const __VERSION__: string | undefined;
 declare const __DEMO_GZ_B64__: string | undefined;
+declare const __CLIENT_JS__: string | undefined;
 const VERSION = typeof __VERSION__ !== "undefined" ? __VERSION__ : "0.0.0-dev";
 
 const HELP = `agent-tailspin ${VERSION}: why did that Claude Code session go badly?
@@ -87,7 +88,15 @@ function demoJsonl(): string {
   return fs.readFileSync(new URL("../../fixtures/demo/demo.jsonl", import.meta.url), "utf8");
 }
 
-function report(text: { main: string; sidechains: string[] }, v: Values, synthetic: boolean): void {
+/** The report renderer: inlined by the build; bundled on the fly when running from source (dev only). */
+async function clientJs(): Promise<string> {
+  if (typeof __CLIENT_JS__ !== "undefined") return __CLIENT_JS__;
+  const { build } = await import("esbuild");
+  const r = await build({ entryPoints: [new URL("../report/client.ts", import.meta.url).pathname], bundle: true, minify: true, format: "iife", write: false });
+  return r.outputFiles[0]!.text;
+}
+
+async function report(text: { main: string; sidechains: string[] }, v: Values, synthetic: boolean): Promise<void> {
   const session = parse(text.main, { sidechains: text.sidechains });
   const a = analyze(session, { pricing: loadPricing(v.pricing), minConfidence: minConfidence(v["min-confidence"]), redact: v.redact });
   const model = buildReportModel(a, { version: VERSION, synthetic });
@@ -97,7 +106,7 @@ function report(text: { main: string; sidechains: string[] }, v: Values, synthet
   }
   const out = path.resolve(v.out ?? path.join(os.tmpdir(), "agent-tailspin", `report-${model.session.id.slice(0, 8)}${v.redact ? "-redacted" : ""}.html`));
   fs.mkdirSync(path.dirname(out), { recursive: true });
-  fs.writeFileSync(out, buildHtml(model));
+  fs.writeFileSync(out, buildHtml(model, await clientJs()));
   console.log(summary(model, v.verbose) + linkLine(out));
   if (!v["no-open"]) openInBrowser(out);
 }
@@ -151,7 +160,7 @@ function list(v: Values): number {
   return 0;
 }
 
-export function main(argv = process.argv.slice(2)): number {
+export async function main(argv = process.argv.slice(2)): Promise<number> {
   let parsed;
   try {
     parsed = parseArgs({ args: argv, options, allowPositionals: true, strict: true });
@@ -163,7 +172,7 @@ export function main(argv = process.argv.slice(2)): number {
   try {
     if (v.help) return console.log(HELP), 0;
     if (v.version) return console.log(VERSION), 0;
-    if (v.demo) return report({ main: demoJsonl(), sidechains: [] }, v, true), 0;
+    if (v.demo) return await report({ main: demoJsonl(), sidechains: [] }, v, true), 0;
     const [cmd, arg, ...extra] = positionals;
     if (cmd === "list") return list(v);
     let ref: SessionRef | undefined;
@@ -179,7 +188,7 @@ export function main(argv = process.argv.slice(2)): number {
         return 2;
       }
     } else throw new UsageError(`Unknown command "${cmd}".`);
-    report(readSession(ref), v, false);
+    await report(readSession(ref), v, false);
     return 0;
   } catch (e) {
     if (e instanceof UsageError) {
@@ -191,4 +200,4 @@ export function main(argv = process.argv.slice(2)): number {
   }
 }
 
-process.exitCode = main();
+process.exitCode = await main();

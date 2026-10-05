@@ -26,7 +26,11 @@ describe("cli", () => {
     expect(r.status).toBe(0);
     expect(r.stdout).toContain("synthetic demo data");
     expect(r.stdout).toContain(out);
-    expect(fs.readFileSync(out, "utf8")).toContain("tailspin-data");
+    const html = fs.readFileSync(out, "utf8");
+    expect(html).toContain("tailspin-data");
+    // The renderer must be inlined, or the page is blank (regression: dev runs wrote empty reports).
+    const lastScript = html.slice(html.lastIndexOf("<script>") + 8, html.lastIndexOf("</script>"));
+    expect(lastScript.length).toBeGreaterThan(1000);
     fs.rmSync(out);
   });
 

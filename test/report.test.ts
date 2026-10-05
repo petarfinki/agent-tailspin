@@ -50,6 +50,11 @@ describe("html report", () => {
     expect(out).not.toContain("<img");
   });
 
+  it("refuses to build a report without the renderer script", () => {
+    const m = buildReportModel(analyze(parse(buildDemo().jsonl)), { version: "t" });
+    expect(() => buildHtml(m, "")).toThrow(/client script missing/);
+  });
+
   it("escapes every dangerous character in embedded JSON", () => {
     expect(embedJson({ a: "<>&\u2028\u2029" })).toBe('{"a":"\\u003c\\u003e\\u0026\\u2028\\u2029"}');
   });

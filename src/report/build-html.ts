@@ -18,6 +18,8 @@ const escapeHtml = (s: string): string =>
   s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
 export function buildHtml(model: ReportModel, clientJs: string = typeof __CLIENT_JS__ !== "undefined" ? __CLIENT_JS__ : ""): string {
+  // Without the renderer the page is blank; fail loudly instead of writing a useless file.
+  if (!clientJs) throw new Error("Report client script missing: run `npm run build`, or pass the bundled client to buildHtml().");
   const title = `Tailspin · ${model.session.id.slice(0, 8)}${model.synthetic ? " (demo)" : ""}`;
   return `<!doctype html>
 <html lang="en">
