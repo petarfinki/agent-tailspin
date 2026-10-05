@@ -7,5 +7,12 @@
   growing `output_tokens` across lines).
 - **Subagents are discovered from `<session>/subagents/*.jsonl`**, not interleaved. v0.1 adds their
   usage to `sidechains` totals only.
-- **Leaf selection:** last `last-prompt.leafUuid` if it resolves, otherwise the latest-timestamp
-  tree node.
+- **Leaf = last tree line in file order** (not `last-prompt.leafUuid`, which marks the last *prompt* and
+  would cut off the final reply). After a rewind the new branch is always written later in the file.
+- **Totals are transcript-only (a lower bound).** M1 cross-check against Claude Code's own `cost-state`
+  line on 5 local sessions: one matched to the cent ($13.111 vs $13.112, identical token counts); the
+  others were 5–15% lower. The difference is API calls that never appear as transcript steps (auto-mode
+  classifier requests, advisor calls, Haiku title calls). Per-step attribution is unaffected. ccusage was
+  not used because running it needs a network install; cost-state is a first-party reference.
+- **Zero runtime dependencies.** `node:util` `parseArgs` replaces `cac`/`commander`; ANSI colors are a
+  few lines. Nothing to justify, nothing to audit.
