@@ -1,0 +1,17 @@
+{
+  "name": "agent-tailspin",
+  "version": "0.0.0",
+  "description": "Flight recorder for Claude Code sessions: find retry loops, redundant reads, and context-bloating tool outputs. Fully local.",
+  "license": "MIT",
+  "type": "module",
+  "bin": { "agent-tailspin": "dist/cli.js" },
+  "files": ["dist"],
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "eval": "tsx eval/run.ts"
+  }
+}

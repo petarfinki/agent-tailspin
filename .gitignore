@@ -1,0 +1,6 @@
+node_modules/
+dist/
+*.jsonl
+!fixtures/**/*.jsonl
+agent-tailspin-report-*.html
+eval/labels/private/
