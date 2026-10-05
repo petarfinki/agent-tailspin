@@ -4,3 +4,4 @@ dist/
 !fixtures/**/*.jsonl
 agent-tailspin-report-*.html
 eval/labels/private/
+.DS_Store
