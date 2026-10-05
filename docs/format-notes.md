@@ -121,8 +121,11 @@ fallback for it.
 - [obs] Then a `user` line with `isCompactSummary: true` and `isVisibleInTranscriptOnly: true` (the summary).
   `preservedMessages.anchorUuid` is this line.
 - [obs] **Compaction can keep messages:** `preservedMessages.allUuids` lists pre-compaction lines that stay in
-  context (in the test, the final assistant turn). The parser maps them to tool calls
+  context (in the test, only the final assistant text reply). The parser maps them to tool calls
   (`Compaction.preservedToolCallIds`); a preserved output's lifetime continues past the boundary.
+  [prior] **A preserved *tool result* was not observed**: that path is built from the inferred structure
+  and covered only by a synthetic fixture. Re-run `scripts/format-recon.mjs` on the next real session that
+  compacts (especially an automatic one) and check.
 - [obs] After the boundary, Claude Code **re-attaches recently read files** as `attachment` lines with
   `attachment.type: "file"` and the content in `rendered[].content`. In the test, "read the file again" was
   answered from that attachment with no tool call.
