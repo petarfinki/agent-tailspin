@@ -109,6 +109,47 @@ export const fixtures: Fixture[] = [
     },
   },
   {
+    // Mirrors a real manual /compact (Claude Code 2.1.289): re-read answered with a file_unchanged stub,
+    // last turn preserved, file re-attached after the boundary, then a legitimate read.
+    name: "compaction-manual-real-shape",
+    expect: {},
+    build: () =>
+      session({ systemTokens: 35_000 })
+        .user("Create a dummy file, then read it twice")
+        .bash("python3 gen_dummy.py > dummy.ts", { tokens: 20 })
+        .read("/work/demo-app/dummy.ts", { tokens: 3600 })
+        .readUnchanged("/work/demo-app/dummy.ts")
+        .text("Read it twice; the second read was unchanged.")
+        .compact({ summaryTokens: 650, preserveLastStep: true })
+        .fileAttachment("/work/demo-app/dummy.ts", 3600)
+        .user("Read dummy.ts again")
+        .read("/work/demo-app/dummy.ts", { tokens: 3600 })
+        .text()
+        .build(),
+  },
+  {
+    name: "repeated-read-unchanged-stubs",
+    expect: {},
+    build: () =>
+      session()
+        .user("Look at the pool")
+        .read(P, { tokens: 3200 })
+        .readUnchanged(P)
+        .readUnchanged(P)
+        .readUnchanged(P)
+        .text()
+        .build(),
+  },
+  {
+    name: "big-output-preserved-across-compaction",
+    expect: { "output-lifetime": 1 },
+    build: () => {
+      const b = session().user("Why does the build fail?").bash("pnpm build 2>&1", { tokens: 12_000 }).compact({ preserveLastStep: true });
+      for (let i = 0; i < 20; i++) b.step([read(`/work/demo-app/src/mod${i}.ts`, { tokens: 300 })]);
+      return b.text().build();
+    },
+  },
+  {
     name: "big-output-short-lived",
     expect: {},
     build: () =>

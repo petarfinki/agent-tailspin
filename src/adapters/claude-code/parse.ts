@@ -220,12 +220,12 @@ export function parse(input: string, opts: ParseOptions = {}): Session {
   active.sort((a, b) => a.pos - b.pos);
 
   // ---- tool results, joined by tool_use_id regardless of tree position ----
-  const results = new Map<string, Obj>();
+  const results = new Map<string, { block: Obj; line: Obj }>();
   for (const line of tree) {
     if (line.o.type !== "user" || !isObj(line.o.message)) continue;
     for (const b of arr(line.o.message.content))
       if (isObj(b) && b.type === "tool_result" && typeof b.tool_use_id === "string")
-        results.set(b.tool_use_id, b);
+        results.set(b.tool_use_id, { block: b, line: line.o });
   }
 
   const steps: Step[] = active.map(({ g }, index) => {
@@ -236,7 +236,7 @@ export function parse(input: string, opts: ParseOptions = {}): Session {
         if (!isObj(b) || b.type !== "tool_use" || typeof b.id !== "string") continue;
         const call: ToolCall = { id: b.id, name: str(b.name) ?? "?", input: isObj(b.input) ? b.input : {} };
         const r = results.get(b.id);
-        if (r) call.result = readResult(r);
+        if (r) call.result = readResult(r.block, r.line);
         toolCalls.push(call);
       }
     }
@@ -259,7 +259,7 @@ export function parse(input: string, opts: ParseOptions = {}): Session {
   const exchanges: Exchange[] = [];
   const extraChars: number[] = steps.map(() => 0); // non-tool content added before step i
   const promptBefore: boolean[] = steps.map(() => false);
-  const markerBefore = new Set<number>();
+  const markerBefore = new Map<number, Set<string>>(); // step → uuids preserved across the compaction
   const cwd = str(leaf?.o.cwd);
   let nextStep = 0;
   for (let p = 0; p < path.length; p++) {
@@ -276,7 +276,12 @@ export function parse(input: string, opts: ParseOptions = {}): Session {
       if (nextStep < steps.length) promptBefore[nextStep] = true;
     }
     if (nextStep >= steps.length) continue;
-    if ((o.type === "system" && o.subtype === "compact_boundary") || o.isCompactSummary === true) markerBefore.add(nextStep);
+    if ((o.type === "system" && o.subtype === "compact_boundary") || o.isCompactSummary === true) {
+      const preserved = markerBefore.get(nextStep) ?? new Set<string>();
+      const pm = isObj(o.compactMetadata) && isObj(o.compactMetadata.preservedMessages) ? o.compactMetadata.preservedMessages : {};
+      for (const u of [...arr(pm.allUuids), ...arr(pm.uuids)]) if (typeof u === "string") preserved.add(u);
+      markerBefore.set(nextStep, preserved);
+    }
     if (o.type === "attachment" && isObj(o.attachment)) {
       extraChars[nextStep]! += textChars(o.rendered);
       const a = o.attachment;
@@ -301,9 +306,22 @@ export function parse(input: string, opts: ParseOptions = {}): Session {
     const drop = before >= COMPACTION_MIN_CONTEXT && after < before * (1 - COMPACTION_DROP_RATIO);
     const marker = markerBefore.has(i);
     if (drop || marker)
-      compactions.push({ atStepIndex: i, detectedBy: drop && marker ? "both" : marker ? "marker" : "context-drop", contextBefore: before, contextAfter: after });
+      compactions.push({
+        atStepIndex: i,
+        detectedBy: drop && marker ? "both" : marker ? "marker" : "context-drop",
+        contextBefore: before,
+        contextAfter: after,
+        preservedToolCallIds: preservedCalls(markerBefore.get(i)),
+      });
   }
   const compactedAt = new Set(compactions.map((c) => c.atStepIndex));
+
+  function preservedCalls(uuids?: Set<string>): string[] {
+    if (!uuids?.size) return [];
+    const ids: string[] = [];
+    for (const [id, r] of results) if (uuids.has(str(r.line.uuid) ?? "")) ids.push(id);
+    return ids.sort();
+  }
 
   // ---- tool result token estimates (PRODUCT.md §8) ----
   for (let i = 0; i < steps.length; i++) {
@@ -371,7 +389,7 @@ export function parse(input: string, opts: ParseOptions = {}): Session {
   };
 }
 
-function readResult(block: Obj): ToolResult {
+function readResult(block: Obj, line: Obj): ToolResult {
   const c = block.content;
   const isImage = Array.isArray(c) && c.some((b) => isObj(b) && b.type === "image");
   const text = contentText(c);
@@ -380,6 +398,7 @@ function readResult(block: Obj): ToolResult {
     isError: block.is_error === true,
     exitCode: m ? Number(m[1]) : undefined,
     isImage,
+    unchanged: isObj(line.toolUseResult) && line.toolUseResult.type === "file_unchanged",
     sizeChars: isImage ? textChars(c) : text.length,
     text,
     estTokens: 0,

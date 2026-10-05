@@ -16,6 +16,8 @@ export interface CallSpec {
   /** Result size in tokens (ground truth). */
   tokens: number;
   isError?: boolean;
+  /** Claude Code's "file unchanged" stub for a re-read (toolUseResult.type = file_unchanged). */
+  unchanged?: boolean;
   /** Full result text; padded to `tokens` if shorter. */
   text?: string;
   image?: boolean;
@@ -47,6 +49,15 @@ export const edit = (path: string): CallSpec => ({
   input: { file_path: path, old_string: "a", new_string: "b" },
   tokens: 30,
   text: `The file ${path} has been updated successfully.`,
+});
+
+/** A re-read Claude Code answered with its "file unchanged" stub (observed in 2.1.289). */
+export const readUnchanged = (path: string): CallSpec => ({
+  name: "Read",
+  input: { file_path: path },
+  tokens: 25,
+  unchanged: true,
+  text: "File unchanged since last read. The content from the earlier Read tool_result in this conversation is still current.",
 });
 
 export const write = (path: string): CallSpec => ({
@@ -92,6 +103,8 @@ export class SessionBuilder {
   private checkpoints = new Map<string, State>();
   private truth = new Map<string, number>();
   private toolIds: string[] = [];
+  /** Lines and new context of the most recent step, for compactions that preserve it. */
+  private lastStep: { uuids: string[]; tokens: number } | null = null;
   private t0 = Date.parse("2026-01-01T10:00:00Z");
 
   constructor(
@@ -200,19 +213,25 @@ export class SessionBuilder {
         ...this.base("user", blockLine.get(firstTool + i)!),
         promptId: "p",
         message: { role: "user", content: [block] },
-        toolUseResult: c.name === "Bash" ? { stdout: "", stderr: "", interrupted: false, isImage: false, noOutputExpected: false } : { type: c.image ? "image" : "text" },
+        toolUseResult:
+          c.name === "Bash"
+            ? { stdout: "", stderr: "", interrupted: false, isImage: false, noOutputExpected: false }
+            : { type: c.image ? "image" : c.unchanged ? "file_unchanged" : "text" },
         sourceToolAssistantUUID: blockLine.get(firstTool + i),
       });
       this.truth.set(ids[i]!, c.tokens);
       this.toolIds.push(ids[i]!);
       newTokens += c.tokens;
     });
+    const stepStart = this.lines.length - blocks.length - calls.length;
+    this.lastStep = { uuids: this.lines.slice(stepStart).map((l) => l.uuid as string), tokens: out + newTokens };
     this.st = { ...this.st, prevCtx: ctx, prevOut: out, pending: newTokens };
     return this;
   }
 
   read(...a: Parameters<typeof read>): this { return this.step([read(...a)]); }
   edit(path: string): this { return this.step([edit(path)]); }
+  readUnchanged(path: string): this { return this.step([readUnchanged(path)]); }
   write(path: string): this { return this.step([write(path)]); }
   bash(...a: Parameters<typeof bash>): this { return this.step([bash(...a)]); }
 
@@ -221,13 +240,48 @@ export class SessionBuilder {
     return this.step([], { text, outTokens: o.outTokens ?? 80 });
   }
 
-  /** Compaction: boundary marker + summary; context resets to system prompt + summary. */
-  compact(o: { summaryTokens?: number } = {}): this {
+  /**
+   * Compaction, in the shape observed for a manual /compact (2.1.289): a parentless compact_boundary with
+   * logicalParentUuid + compactMetadata, then an isCompactSummary user line. Context resets to the system
+   * prompt + summary (+ the last step, when `preserveLastStep` keeps it via preservedMessages).
+   */
+  compact(o: { summaryTokens?: number; preserveLastStep?: boolean; trigger?: "manual" | "auto" } = {}): this {
     const summaryTokens = o.summaryTokens ?? 2000;
-    const prev = this.st.last;
-    this.push({ ...this.base("system", null), subtype: "compact_boundary", logicalParentUuid: prev, content: "Conversation compacted", compactMetadata: { trigger: "auto", preTokens: this.st.prevCtx } });
-    this.push({ ...this.base("user"), isCompactSummary: true, message: { role: "user", content: "s".repeat(summaryTokens * FIXTURE_CHARS_PER_TOKEN) } });
-    this.st = { ...this.st, prevCtx: this.opts.systemTokens, prevOut: 0, pending: summaryTokens };
+    const preserved = o.preserveLastStep && this.lastStep ? this.lastStep : { uuids: [], tokens: 0 };
+    const preTokens = this.st.prevCtx + this.st.prevOut + this.st.pending;
+    const boundary = this.push({
+      ...this.base("system", null),
+      subtype: "compact_boundary",
+      logicalParentUuid: this.st.last,
+      content: "Conversation compacted",
+      level: "info",
+      compactMetadata: {
+        trigger: o.trigger ?? "manual",
+        preTokens,
+        postTokens: summaryTokens + preserved.tokens,
+        durationMs: 12_000,
+        preservedMessages: { anchorUuid: "", uuids: preserved.uuids, allUuids: preserved.uuids },
+        preservedSegment: preserved.uuids.length ? { headUuid: preserved.uuids[0], anchorUuid: "", tailUuid: preserved.uuids[preserved.uuids.length - 1] } : undefined,
+      },
+    });
+    const summary = this.push({
+      ...this.base("user"),
+      isCompactSummary: true,
+      isVisibleInTranscriptOnly: true,
+      message: { role: "user", content: "s".repeat(summaryTokens * FIXTURE_CHARS_PER_TOKEN) },
+    });
+    const meta = boundary.compactMetadata as Obj;
+    (meta.preservedMessages as Obj).anchorUuid = summary.uuid;
+    if (meta.preservedSegment) (meta.preservedSegment as Obj).anchorUuid = summary.uuid;
+    this.st = { ...this.st, prevCtx: this.opts.systemTokens, prevOut: 0, pending: summaryTokens + preserved.tokens };
+    return this;
+  }
+
+  /** Claude Code re-attaches recently read files after a compaction (attachment type "file"). */
+  fileAttachment(path: string, tokens: number): this {
+    const text = "f".repeat(Math.round(tokens * CHARS_PER_TOKEN));
+    this.push({ ...this.base("attachment"), attachment: { type: "file", filename: path, content: { type: "text", file: { filePath: path, content: "…" } } }, rendered: [{ content: text }] });
+    this.st.pending += tokens;
     return this;
   }
 

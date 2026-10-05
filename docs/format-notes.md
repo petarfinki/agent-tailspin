@@ -110,17 +110,39 @@ the format, handled defensively, needs confirmation on a session that exhibits i
 
 ## Compaction
 
-- [obs] **No compaction occurred in any local session.**
-- [prior] Compaction writes a `system` line with `subtype: "compact_boundary"`, `parentUuid: null`,
-  `logicalParentUuid` pointing to the pre-compaction leaf, and `compactMetadata.{trigger, preTokens}`,
-  followed by a `user` line with `isCompactSummary: true`. The parser follows `logicalParentUuid` across
-  the boundary when walking leaf→root, and also detects compactions by a sharp context drop
-  (belt and braces, as in PRODUCT.md §5).
-- [prior] Pre-compaction lines remain in the file.
+**Verified for manual `/compact` only** (one throwaway session, 2.1.289, 2026-10-05). Auto-compaction near
+the context limit was not observed and may write different markers; the context-drop check is the
+fallback for it.
+
+- [obs] A `system` line with `subtype: "compact_boundary"`, **`parentUuid: null`**, `logicalParentUuid`
+  pointing at the last pre-compaction line, `level: "info"`, and `compactMetadata`:
+  `{ trigger: "manual", preTokens, postTokens, durationMs, preservedMessages: { anchorUuid, uuids[], allUuids[] },
+  preservedSegment: { headUuid, anchorUuid, tailUuid } }`.
+- [obs] Then a `user` line with `isCompactSummary: true` and `isVisibleInTranscriptOnly: true` (the summary).
+  `preservedMessages.anchorUuid` is this line.
+- [obs] **Compaction can keep messages:** `preservedMessages.allUuids` lists pre-compaction lines that stay in
+  context (in the test, the final assistant turn). The parser maps them to tool calls
+  (`Compaction.preservedToolCallIds`); a preserved output's lifetime continues past the boundary.
+- [obs] After the boundary, Claude Code **re-attaches recently read files** as `attachment` lines with
+  `attachment.type: "file"` and the content in `rendered[].content`. In the test, "read the file again" was
+  answered from that attachment with no tool call.
+- [obs] Pre-compaction lines remain in the file. The parser follows `logicalParentUuid` across the boundary.
+- [obs] **The context-drop check alone would miss it:** context went 41k → 36k (−14%) because the system
+  prompt and tool definitions were ~35k. Markers carried detection; the drop check (≥ 50% from ≥ 20k) is
+  only a fallback for unmarked compactions.
+
+## Re-reads of unchanged files
+
+- [obs] Claude Code 2.1.289 answers a re-read of an unchanged file with a short stub (~90 chars,
+  `toolUseResult.type: "file_unchanged"`) instead of the content. The parser marks these
+  (`ToolResult.unchanged`), and repeated-reads ignores them. On current Claude Code, whole-file re-reads of
+  unchanged files are therefore already cheap; repeated-reads mainly fires on older clients and on cases
+  the stub doesn't cover.
 
 ## Answers to PRODUCT.md §20
 
-1. Compaction representation: not observed; see [prior] above. Pre-compaction lines expected to stay.
+1. Compaction representation: verified for manual `/compact` (see above); pre-compaction lines stay, and
+   some may be preserved in context. Auto-compaction unverified.
 2. Subagents: separate files, same `sessionId` as the parent, `isSidechain: true`.
 3. TTL breakdown: yes (`cache_creation.ephemeral_5m/1h_input_tokens`). Priced separately.
 4. Bash failures: reliably `is_error: true` + `Exit code N` prefix.

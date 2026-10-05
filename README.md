@@ -25,6 +25,10 @@ has no network code (`grep -rn "fetch\|http" src` finds only the SVG namespace s
 | **repeated-reads** | A file range is read again with no edit, file-changing command, external edit, subagent run, or compaction in between | "`src/db/pool.ts` was read 5 times without changes in between" |
 | **output-lifetime** | One tool output ≥ 4k tokens rode along in the context for ≥ 100k cache-read tokens | "One Bash output (~16k tokens) stayed in context for 30 more steps" |
 
+Current Claude Code (2.1.28x) already answers re-reads of unchanged files with a short "unchanged" stub,
+which Tailspin recognizes and doesn't count. So repeated-reads fires mostly on older clients and on cases
+the stub doesn't cover.
+
 Every finding links to the exact steps on the context timeline, states its confidence, and says how its
 impact was computed. Precise definitions, guards, and known limitations: [docs/detectors.md](docs/detectors.md).
 
@@ -106,7 +110,8 @@ To label your own: `npm run eval -- --template <session-id> > eval/labels/privat
 
 **The transcript format is unofficial.** Claude Code's JSONL format isn't a documented API and changes
 between versions. Tailspin parses defensively (unknown lines become warnings, never crashes) and was
-built against Claude Code 2.1.27x–2.1.28x ([format notes](docs/format-notes.md)). If a new version
+built against Claude Code 2.1.27x–2.1.28x ([format notes](docs/format-notes.md)). Compaction handling is
+verified for manual `/compact`; auto-compaction markers haven't been observed yet. If a new version
 breaks something, please open an issue with the output of `--verbose`. Never attach a real transcript.
 
 ## Development

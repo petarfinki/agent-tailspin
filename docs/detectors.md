@@ -30,7 +30,8 @@ A tool result returned after step N is first sent to the model at step N+1.
 
 - a `Read` returns content whose line range is **fully contained** in an earlier still-live read of the
   same path (ranges come from the result's `cat -n` line numbers, falling back to offset/limit),
-- the earlier read wasn't an error, and the later result is at least 200 chars (not a stub),
+- the earlier read wasn't an error, the later result isn't Claude Code's `file_unchanged` stub, and it is at
+  least 200 chars,
 - and **nothing invalidated** the earlier read in between:
   - `Edit` / `MultiEdit` / `Write` / `NotebookEdit` on that path,
   - a Bash command that could modify it: global modifiers (`git checkout|restore|stash|reset|pull|merge|rebase|apply|switch|…`,
@@ -39,7 +40,7 @@ A tool result returned after step N is first sent to the model at step N+1.
     invalidate paths whose file name appears in the command; `>`/`>>` redirects invalidate their target,
   - an `edited_text_file` notice (the user edited the file themselves),
   - an `Agent`/`Task` call (a subagent may have changed anything),
-  - a compaction (the earlier copy is gone).
+  - a compaction (the earlier copy is gone), unless the compaction preserved that read.
 
 **Emits** one finding per path with ≥ 2 redundant reads. `high` at ≥ 4 redundant reads or ≥ 20k
 redundant tokens, else `warn`. Confidence `high`.
@@ -47,7 +48,9 @@ redundant tokens, else `warn`. Confidence `high`.
 **Impact:** sum of the redundant reads' estimated sizes. Cost adds one cache write per redundant copy
 plus its cache reads until compaction or session end.
 
-**Known limitations:** Bash reads (`cat`, `head`) aren't counted yet. A Bash command that modifies a file
+**Known limitations:** Claude Code 2.1.289 already replaces re-reads of unchanged files with a short
+`file_unchanged` stub, so on current clients this detector fires less often (older clients, and cases the
+stub doesn't cover). Bash reads (`cat`, `head`) aren't counted yet. A Bash command that modifies a file
 without naming it (e.g. a custom codegen script) isn't recognized as a modifier; the global-modifier
 list is the guard. A file changed by an external process the agent can't see (watchers, other terminals
 without an `edited_text_file` notice) makes a re-read legitimate but still flagged.
@@ -57,7 +60,7 @@ without an `edited_text_file` notice) makes a re-read legitimate but still flagg
 **Intent:** find the single tool outputs that cost the most *because they stayed in context*.
 
 **Model:** an output of `S` tokens first appears at step N+1 (billed there as input/cache write) and is
-re-sent with every later step until a compaction or the end of the branch.
+re-sent with every later step until a compaction that doesn't preserve it, or the end of the branch.
 `lifetimeTokens = S × laterSteps`. Cost is priced per later step at that step's measured cache-read ratio
 (the cache-read share at the cache-read rate, the rest at the input rate).
 

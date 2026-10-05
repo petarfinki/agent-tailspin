@@ -47,3 +47,7 @@
   loop, keep their lifetime finding. Being listed as evidence elsewhere isn't enough.
 - **Default report path is the OS temp directory** (`$TMPDIR/agent-tailspin/report-<id>.html`), so running
   the tool never drops files into the user's project. `--out` overrides.
+- **Compaction verified on a real manual `/compact`** (2026-10-05). Added from what it showed:
+  preserved messages (`compactMetadata.preservedMessages`) keep outputs alive across the boundary for D1 and
+  D2; `file_unchanged` re-read stubs are ignored by D1; the fixture builder emits the observed shape
+  (`compaction-manual-real-shape`). Auto-compaction remains unverified.

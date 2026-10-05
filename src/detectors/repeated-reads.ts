@@ -54,10 +54,12 @@ export const repeatedReads: Detector = {
     const cwd = session.cwd;
     const live = new Map<string, LiveRead[]>();
     const redundant = new Map<string, { all: LiveRead[]; extra: LiveRead[] }>();
-    const compactedAt = new Set(session.compactions.map((c) => c.atStepIndex));
+    const compactionAt = new Map(session.compactions.map((c) => [c.atStepIndex, new Set(c.preservedToolCallIds)]));
 
     for (const step of session.steps) {
-      if (compactedAt.has(step.index)) live.clear();
+      const kept = compactionAt.get(step.index);
+      // A compaction drops earlier reads from context, except results it explicitly preserved.
+      if (kept) for (const [p, reads] of [...live]) live.set(p, reads.filter((r) => kept.has(r.call.id)));
       for (const p of step.externalEdits) live.delete(p);
       // Writes first: parallel calls in one step are unordered, so assume the edit may land before the read.
       for (const call of step.toolCalls) {
@@ -71,7 +73,8 @@ export const repeatedReads: Detector = {
         }
       }
       for (const call of step.toolCalls) {
-        if (call.name !== "Read" || !call.result || call.result.isError || call.result.isImage) continue;
+        // An "unchanged" stub re-adds nothing: Claude Code itself deduplicated the read.
+        if (call.name !== "Read" || !call.result || call.result.isError || call.result.isImage || call.result.unchanged) continue;
         const p = filePathOf(call, cwd);
         if (!p) continue;
         const r: LiveRead = { step: step.index, call, ...rangeOf(call) };
@@ -97,7 +100,7 @@ export const repeatedReads: Detector = {
       let lifetime = 0;
       let usd: number | undefined = 0;
       for (const r of g.extra) {
-        const later = laterSteps(session, r.step);
+        const later = laterSteps(session, r.step, r.call.id);
         lifetime += r.call.result!.estTokens * later;
         const first = session.steps[r.step + 1];
         const p = lookupPrice(ctx.pricing, first?.model);

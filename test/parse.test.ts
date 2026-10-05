@@ -141,3 +141,25 @@ describe("token accounting invariants", () => {
     }
   });
 });
+
+describe("real compaction shape (manual /compact, 2.1.289)", () => {
+  it("detects the compaction by marker even when context barely drops, and records preserved results", () => {
+    const { s } = parsed("compaction-manual-real-shape");
+    expect(s.compactions).toHaveLength(1);
+    expect(s.compactions[0]!.detectedBy).toBe("marker");
+    expect(s.compactions[0]!.contextAfter / s.compactions[0]!.contextBefore).toBeGreaterThan(0.5); // big system prompt
+    expect(s.steps).toHaveLength(6);
+    expect(s.exchanges).toHaveLength(2);
+  });
+
+  it("marks file_unchanged stubs", () => {
+    const { s } = parsed("repeated-read-unchanged-stubs");
+    expect(s.steps.slice(1, 4).every((st) => st.toolCalls[0]!.result!.unchanged)).toBe(true);
+    expect(s.steps[0]!.toolCalls[0]!.result!.unchanged).toBe(false);
+  });
+
+  it("maps preservedMessages uuids to the preserved tool calls", () => {
+    const { b, s } = parsed("big-output-preserved-across-compaction");
+    expect(s.compactions[0]!.preservedToolCallIds).toEqual([b.toolIds[0]]);
+  });
+});

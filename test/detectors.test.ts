@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { parse } from "../src/adapters/claude-code/parse.js";
-import { analyze } from "../src/analyze.js";
+import { analyze, defaultPricing } from "../src/analyze.js";
+import { outputLifetimes } from "../src/detectors/output-lifetime.js";
 import { detectors } from "../src/detectors/index.js";
 import { fixtures, getFixture } from "../fixtures/synthetic/catalog.js";
 import { bash, edit, read, session } from "../fixtures/builder/index.js";
@@ -181,5 +182,19 @@ describe("cross-detector overlap", () => {
     const fs = run(filler(b, 30).text().build().jsonl).findings;
     expect(fs.filter((f) => f.detector === "failure-loops")).toHaveLength(1);
     expect(fs.filter((f) => f.detector === "output-lifetime").length).toBeGreaterThan(0);
+  });
+});
+
+describe("compaction semantics", () => {
+  it("D2 lifetime continues across a compaction that preserved the output", () => {
+    const [f] = runFixture("big-output-preserved-across-compaction").findings;
+    expect(f!.title).toContain("20 more steps");
+  });
+
+  it("D2 lifetime stops at a compaction that didn't preserve it (real shape)", () => {
+    const s = parse(getFixture("compaction-manual-real-shape").build().jsonl);
+    const firstRead = outputLifetimes(s, defaultPricing).find((o) => o.step === 1)!;
+    expect(s.compactions[0]!.atStepIndex).toBe(4);
+    expect(firstRead.laterSteps).toBe(1); // carried by step 3 only, dropped at the boundary
   });
 });

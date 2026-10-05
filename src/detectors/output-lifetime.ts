@@ -26,10 +26,10 @@ export function outputLifetimes(session: Session, pricing: PricingTable): Output
   for (const step of session.steps) {
     const first = step.index + 1;
     if (first >= session.steps.length) continue;
-    const last = lastStepInContext(session, step.index);
     for (const call of step.toolCalls) {
       const r = call.result;
       if (!r) continue;
+      const last = lastStepInContext(session, step.index, call.id);
       const later = Math.max(0, last - first);
       const nearCompaction = session.compactions.some((c) => c.atStepIndex === first || c.atStepIndex === first + 1);
       const confidence: Confidence =

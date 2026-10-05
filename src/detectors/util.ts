@@ -16,14 +16,18 @@ export function filePathOf(call: ToolCall, cwd?: string): string | undefined {
 
 export const commandOf = (call: ToolCall): string => (typeof call.input.command === "string" ? call.input.command : "");
 
-/** Index of the last step that still carries a result produced at step `i` (before compaction/end). */
-export function lastStepInContext(session: Session, i: number): number {
-  const next = session.compactions.find((c) => c.atStepIndex > i + 1);
+/**
+ * Index of the last step that still carries a result produced at step `i`: the step before the first
+ * compaction that didn't preserve it, or the last step.
+ */
+export function lastStepInContext(session: Session, i: number, callId?: string): number {
+  const next = session.compactions.find((c) => c.atStepIndex > i + 1 && !(callId && c.preservedToolCallIds.includes(callId)));
   return next ? next.atStepIndex - 1 : session.steps.length - 1;
 }
 
 /** Steps after the result's first appearance (step i+1) that re-read it from context. */
-export const laterSteps = (session: Session, i: number): number => Math.max(0, lastStepInContext(session, i) - (i + 1));
+export const laterSteps = (session: Session, i: number, callId?: string): number =>
+  Math.max(0, lastStepInContext(session, i, callId) - (i + 1));
 
 export function stepCost(step: Step, pricing: PricingTable): number | undefined {
   const p = lookupPrice(pricing, step.model);

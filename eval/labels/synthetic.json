@@ -15,6 +15,11 @@
     "label": "TP"
   },
   {
+    "sessionHash": "synthetic:big-output-preserved-across-compaction",
+    "findingId": "output-lifetime:f890a833",
+    "label": "TP"
+  },
+  {
     "sessionHash": "synthetic:failure-loop-edit-test",
     "findingId": "failure-loops:c4481c8b",
     "label": "TP"

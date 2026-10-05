@@ -20,6 +20,8 @@ export interface ToolResult {
   /** Parsed from a Bash `Exit code N` prefix when present. */
   exitCode?: number;
   isImage: boolean;
+  /** Claude Code answered a re-read with a "file unchanged" stub instead of the content. */
+  unchanged: boolean;
   /** Chars of the tool_result content as it entered the context (persisted outputs: the preview only). */
   sizeChars: number;
   /** Raw text, kept in memory for analysis only. Never serialized into reports. */
@@ -64,6 +66,8 @@ export interface Compaction {
   detectedBy: "marker" | "context-drop" | "both";
   contextBefore: number;
   contextAfter: number;
+  /** Tool calls whose results Claude Code kept in context across this compaction (compactMetadata.preservedMessages). */
+  preservedToolCallIds: string[];
 }
 
 export interface ParseWarning {
