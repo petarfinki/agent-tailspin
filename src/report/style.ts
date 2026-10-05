@@ -8,7 +8,7 @@ main{max-width:1080px;margin:0 auto;padding:24px 16px 64px}
 h1{font-size:20px;margin:0 0 4px;letter-spacing:-.01em}
 h2{font-size:15px;margin:32px 0 10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
 .meta{color:var(--muted);font-size:13px;display:flex;flex-wrap:wrap;gap:4px 14px}
-.prov{margin-top:10px;font-size:12.5px;color:var(--muted);border-left:3px solid var(--line);padding-left:10px}
+.prov{margin-top:10px;font-size:12.5px;color:var(--muted)}
 .demo{display:inline-block;background:var(--warn);color:#000;font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;margin-left:8px;vertical-align:middle}
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:18px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
@@ -26,8 +26,7 @@ h2{font-size:15px;margin:32px 0 10px;text-transform:uppercase;letter-spacing:.06
 .tip{position:absolute;pointer-events:none;background:var(--fg);color:var(--bg);font-size:12px;padding:6px 8px;border-radius:6px;white-space:nowrap;transform:translate(-50%,-110%);display:none;font-variant-numeric:tabular-nums}
 .legend{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:12px;color:var(--muted);padding:6px 4px 2px}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
-.finding{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--muted);border-radius:10px;margin:10px 0;padding:12px 14px}
-.finding.high{border-left-color:var(--high)}.finding.warn{border-left-color:var(--warn)}
+.finding{background:var(--card);border:1px solid var(--line);border-radius:10px;margin:10px 0;padding:12px 14px}
 .finding.active{outline:2px solid var(--accent);outline-offset:1px}
 .finding h3{font-size:15px;margin:0;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
 .finding h3 button{all:unset;cursor:pointer;flex:1;min-width:200px}
