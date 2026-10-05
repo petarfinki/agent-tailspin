@@ -1,6 +1,6 @@
 // The bundled --demo session: synthetic, plausible, and exhibiting every detector plus a compaction.
 // Regenerate with `npm run fixtures`; the README screenshot comes from this exact file.
-import { bash, edit, read, session, tool } from "../builder/index.js";
+import { read, session, tool } from "../builder/index.js";
 
 const ROOT = "/home/dev/acme-api";
 const POOL = `${ROOT}/src/db/pool.ts`;

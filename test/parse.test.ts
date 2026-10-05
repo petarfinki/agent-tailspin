@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { parse } from "../src/adapters/claude-code/parse.js";
 import { charTokens, totalTokens } from "../src/core/tokens.js";
 import { getFixture } from "../fixtures/synthetic/catalog.js";
-import { bash, read, session } from "../fixtures/builder/index.js";
+import { read, session } from "../fixtures/builder/index.js";
 
 const parsed = (name: string) => {
   const b = getFixture(name).build();

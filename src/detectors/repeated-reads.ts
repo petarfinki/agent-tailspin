@@ -2,7 +2,7 @@
 // Definition and guards: docs/detectors.md#repeated-reads
 import { basename, normalizePath } from "../core/text.js";
 import { lookupPrice } from "../core/tokens.js";
-import type { Detector, Evidence, Finding, Session, ToolCall } from "../core/types.js";
+import type { Detector, Evidence, Finding, ToolCall } from "../core/types.js";
 import { OPAQUE_WRITERS, WRITE_TOOLS, carryCost, commandOf, filePathOf, findingId, fmtTokens, fmtUsd, laterSteps } from "./util.js";
 
 export const HIGH_REDUNDANT_READS = 4;

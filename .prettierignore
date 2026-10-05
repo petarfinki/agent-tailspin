@@ -1,0 +1,3 @@
+dist
+fixtures/**/*.jsonl
+test/__snapshots__

@@ -30,5 +30,5 @@ export const extname = (p: string): string => {
   return m ? m[0] : "";
 };
 
-// eslint-disable-next-line no-control-regex
+ 
 export const stripAnsi = (s: string): string => s.replace(/\x1b\[[0-9;?]*[ -/]*[@-~]/g, "");

@@ -1,0 +1,128 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`--redact > redacted model shape is stable 1`] = `
+{
+  "findings": [
+    {
+      "confidence": "string",
+      "detector": "string",
+      "evidence": [
+        {
+          "note": "string",
+          "stepIndex": "number",
+          "toolCallId": "string",
+        },
+      ],
+      "id": "string",
+      "impact": {
+        "estCostUsd": "number",
+        "estTokens": "number",
+        "method": "string",
+        "provenance": "string",
+      },
+      "severity": "string",
+      "suggestion": "string",
+      "summary": "string",
+      "title": "string",
+    },
+  ],
+  "generator": {
+    "name": "string",
+    "version": "string",
+  },
+  "hiddenFindings": "number",
+  "pricing": {
+    "asOf": "string",
+    "source": "string",
+  },
+  "redacted": "boolean",
+  "schemaVersion": "number",
+  "session": {
+    "abandoned": {
+      "stepCount": "number",
+      "totalTokens": "number",
+    },
+    "clientVersion": "string",
+    "compactions": [],
+    "cwd": "undefined",
+    "durationMs": "number",
+    "endedAt": "string",
+    "exchangeCount": "number",
+    "gitBranch": "undefined",
+    "id": "string",
+    "models": [
+      "string",
+    ],
+    "sidechains": {
+      "count": "number",
+      "stepCount": "number",
+      "totalTokens": "number",
+    },
+    "source": "string",
+    "startedAt": "string",
+    "stepCount": "number",
+    "warnings": {
+      "byKind": {},
+      "count": "number",
+    },
+  },
+  "synthetic": "boolean",
+  "timeline": [
+    {
+      "cacheRead": "number",
+      "cacheWrite": "number",
+      "ctx": "number",
+      "delta": "number",
+      "exchange": "number",
+      "i": "number",
+      "input": "number",
+      "out": "number",
+      "t": "string",
+      "tools": [
+        "string",
+      ],
+    },
+  ],
+  "toolUsage": [
+    {
+      "calls": "number",
+      "errors": "number",
+      "estTokens": "number",
+      "share": "number",
+      "tool": "string",
+    },
+  ],
+  "topOutputs": [
+    {
+      "confidence": "string",
+      "estMethod": "string",
+      "label": "string",
+      "laterSteps": "number",
+      "lifetimeCostUsd": "number",
+      "lifetimeTokens": "number",
+      "step": "number",
+      "tokens": "number",
+      "tool": "string",
+      "toolCallId": "string",
+    },
+  ],
+  "totals": {
+    "costNote": "undefined",
+    "estCostUsd": "number",
+    "peakContext": "number",
+    "provenance": {
+      "cost": "string",
+      "tokens": "string",
+    },
+    "totalTokens": "number",
+    "usage": {
+      "cacheReadTokens": "number",
+      "cacheWrite1hTokens": "number",
+      "cacheWrite5mTokens": "number",
+      "cacheWriteTokens": "number",
+      "inputTokens": "number",
+      "outputTokens": "number",
+    },
+  },
+}
+`;

@@ -1,5 +1,5 @@
 // Report renderer. Vanilla TS, bundled and inlined at build time.
-// All transcript-derived text goes through text nodes; innerHTML is never used.
+// All transcript-derived text goes through text nodes; no HTML string sinks are used.
 import type { ReportModel } from "./model.js";
 import type { Finding } from "../core/types.js";
 

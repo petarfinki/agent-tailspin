@@ -141,7 +141,7 @@ function list(v: Values): number {
     ];
   });
   const head = ["SESSION", "STARTED", "DUR", "PROJECT", "STEPS", "TOKENS", "COST*", "FINDINGS"];
-  // eslint-disable-next-line no-control-regex
+   
   const visible = (s: string) => s.replace(/\x1b\[[0-9;]*m/g, "").length;
   const widths = head.map((h, i) => Math.max(h.length, ...table.map((r) => visible(r[i]!))));
   const fmt = (r: string[]) => r.map((c, i) => c + " ".repeat(widths[i]! - visible(c))).join("  ");
