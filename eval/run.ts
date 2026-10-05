@@ -1,0 +1,71 @@
+// Precision per detector from hand labels (PRODUCT.md §15).
+//
+//   npm run eval                         precision table from eval/labels/*.json and eval/labels/private/*.json
+//   npm run eval -- --gate               same, exit 1 if any detector with labels is below 80%
+//   npm run eval -- --template <id|path> print a label template for one session's findings (stdout only)
+//
+// Label files: [{ "sessionHash": "...", "findingId": "repeated-reads:1a2b3c4d", "label": "TP" | "FP" | "unclear", "note"?: "..." }]
+// Real-session labels belong in eval/labels/private/ (gitignored). Commit only aggregate numbers.
+import fs from "node:fs";
+import path from "node:path";
+import { readSession, resolveSession } from "../src/adapters/claude-code/discover.js";
+import { parse } from "../src/adapters/claude-code/parse.js";
+import { analyze } from "../src/analyze.js";
+import { hash } from "../src/core/text.js";
+import { detectors } from "../src/detectors/index.js";
+
+export const PRECISION_GATE = 0.8;
+
+export interface Label {
+  sessionHash: string;
+  findingId: string;
+  label: "TP" | "FP" | "unclear";
+  note?: string;
+}
+
+export function precisionTable(labels: Label[]) {
+  return detectors.map((d) => {
+    const mine = labels.filter((l) => l.findingId.startsWith(`${d.id}:`));
+    const tp = mine.filter((l) => l.label === "TP").length;
+    const fp = mine.filter((l) => l.label === "FP").length;
+    return { detector: d.id, labeled: mine.length, tp, fp, unclear: mine.length - tp - fp, precision: tp + fp ? tp / (tp + fp) : undefined };
+  });
+}
+
+function loadLabels(dir: string): Label[] {
+  const files = (d: string) => (fs.existsSync(d) ? fs.readdirSync(d).filter((f) => f.endsWith(".json")).map((f) => path.join(d, f)) : []);
+  return [...files(dir), ...files(path.join(dir, "private"))].flatMap((f) => JSON.parse(fs.readFileSync(f, "utf8")) as Label[]);
+}
+
+function main(argv: string[]): number {
+  const t = argv.indexOf("--template");
+  if (t >= 0) {
+    const ref = resolveSession(argv[t + 1] ?? "");
+    if ("error" in ref) return console.error(ref.error), 2;
+    const text = readSession(ref);
+    const a = analyze(parse(text.main, { sidechains: text.sidechains }), { minConfidence: "low" });
+    const out = a.findings.map((f) => ({ sessionHash: hash(a.session.id), findingId: f.id, label: "unclear", note: `${f.confidence} · ${f.title}` }));
+    console.log(JSON.stringify(out, null, 2));
+    return 0;
+  }
+  const dir = path.join(path.dirname(new URL(import.meta.url).pathname), "labels");
+  const labels = loadLabels(dir);
+  const rows = precisionTable(labels);
+  const sessions = new Set(labels.map((l) => l.sessionHash)).size;
+  console.log(`${labels.length} labels across ${sessions} sessions\n`);
+  console.log("detector          labeled  TP  FP  unclear  precision");
+  for (const r of rows)
+    console.log(
+      `${r.detector.padEnd(18)}${String(r.labeled).padStart(7)}${String(r.tp).padStart(4)}${String(r.fp).padStart(4)}${String(r.unclear).padStart(9)}  ${r.precision === undefined ? "n/a" : `${(r.precision * 100).toFixed(0)}%`}`,
+    );
+  if (argv.includes("--gate")) {
+    const failing = rows.filter((r) => r.precision !== undefined && r.precision < PRECISION_GATE);
+    if (failing.length) {
+      console.error(`\nRelease gate: ${failing.map((r) => r.detector).join(", ")} below ${PRECISION_GATE * 100}% precision.`);
+      return 1;
+    }
+  }
+  return 0;
+}
+
+if (process.argv[1] && import.meta.url.endsWith(path.basename(process.argv[1]))) process.exitCode = main(process.argv.slice(2));

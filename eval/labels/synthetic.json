@@ -1,0 +1,52 @@
+[
+  {
+    "sessionHash": "synthetic:repeated-read-positive",
+    "findingId": "repeated-reads:0a91e0af",
+    "label": "TP"
+  },
+  {
+    "sessionHash": "synthetic:big-output-long-lived",
+    "findingId": "output-lifetime:0647e3d1",
+    "label": "TP"
+  },
+  {
+    "sessionHash": "synthetic:big-output-then-compaction",
+    "findingId": "output-lifetime:bf471069",
+    "label": "TP"
+  },
+  {
+    "sessionHash": "synthetic:failure-loop-edit-test",
+    "findingId": "failure-loops:c4481c8b",
+    "label": "TP"
+  },
+  {
+    "sessionHash": "synthetic:failure-loop-blind-retry",
+    "findingId": "failure-loops:dde3f5ee",
+    "label": "TP"
+  },
+  {
+    "sessionHash": "synthetic:sentinel-secrets",
+    "findingId": "failure-loops:eb5a978d",
+    "label": "TP"
+  },
+  {
+    "sessionHash": "synthetic:sentinel-secrets",
+    "findingId": "repeated-reads:dde3f5ee",
+    "label": "TP"
+  },
+  {
+    "sessionHash": "synthetic:demo",
+    "findingId": "failure-loops:acaf4437",
+    "label": "TP"
+  },
+  {
+    "sessionHash": "synthetic:demo",
+    "findingId": "repeated-reads:dc8a5b69",
+    "label": "TP"
+  },
+  {
+    "sessionHash": "synthetic:demo",
+    "findingId": "output-lifetime:f8612702",
+    "label": "TP"
+  }
+]

@@ -1,0 +1,20 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [20, 22, 24]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm ci
+      - run: npm run lint        # includes the isomorphic-import rule
+      - run: npm run typecheck
+      - run: npm test            # includes the isomorphic-import test and redaction sentinels
+      - run: npm run build
+      - run: node dist/cli.js --demo --json > /dev/null
+      - run: npm run eval -- --gate

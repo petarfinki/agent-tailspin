@@ -13,3 +13,11 @@ describe("committed fixtures", () => {
     expect(fs.readFileSync(new URL("../fixtures/demo/demo.jsonl", import.meta.url), "utf8")).toBe(buildDemo().jsonl);
   });
 });
+
+describe("synthetic eval labels", () => {
+  it("cover exactly the findings the catalog produces (run `npm run fixtures`)", async () => {
+    const { syntheticLabels } = await import("../scripts/label-synthetic.js");
+    const committed = JSON.parse(fs.readFileSync(new URL("../eval/labels/synthetic.json", import.meta.url), "utf8"));
+    expect(committed).toEqual(syntheticLabels());
+  });
+});
