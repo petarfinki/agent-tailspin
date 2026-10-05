@@ -134,6 +134,8 @@ export interface PricingTable {
 
 export interface DetectorContext {
   pricing: PricingTable;
+  /** True in --redact mode: finding text must not contain transcript content. */
+  redacted: boolean;
   /** How a path appears in finding text. Redacted mode maps paths to stable tokens. */
   displayPath(path: string): string;
   /** How a shell command appears in finding text. Redacted mode hides it. */

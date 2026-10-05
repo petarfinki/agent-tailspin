@@ -16,3 +16,20 @@
   not used because running it needs a network install; cost-state is a first-party reference.
 - **Zero runtime dependencies.** `node:util` `parseArgs` replaces `cac`/`commander`; ANSI colors are a
   few lines. Nothing to justify, nothing to audit.
+- **`CHARS_PER_TOKEN = 2.6`, not 3.5.** Measured on ~30 large outputs across 6 local sessions with a
+  clean context-delta estimate: chars/token ranged 1.6–3.1, median ≈ 2.6 (Read results include `cat -n`
+  prefixes, which tokenize densely). 3.5 would underestimate the fallback by 25–40%. Re-measure when the
+  tokenizer changes. This answers PRODUCT.md §20 Q6 for now.
+- **D1 requires containment, not just overlap.** A later read counts as redundant only if an earlier live
+  read already covered its whole range. "Overlap" would flag a whole-file read after a 50-line peek, which
+  brings new content. Ranges come from the `cat -n` prefixes in the result when present (so a truncated
+  whole-file read doesn't "cover" lines it never returned), else from offset/limit.
+- **D1 extra invalidations:** `edited_text_file` attachments (the user edited the file), and any
+  `Agent`/`Task` call (a subagent may have edited anything). Precision over recall.
+- **D2 severity** (unspecified in PRODUCT.md): `high` at ≥ 2M lifetime tokens or ≥ $1, else `warn`.
+  1M was too loud: on Opus 5.5 that's ~$0.30 and fires on most long sessions.
+- **D3 chaining:** consecutive failures of one loop must be ≤ 15 steps apart (rather than all within one
+  15-step window), so a long loop is reported once. A success, or a different error, from the same action
+  breaks the chain (progress). Each consecutive pair needs an edit in between *or* an identical command.
+- **D3 in redacted mode** shows an error type only if it is a generic built-in name (TypeError, …);
+  custom error class names can carry project names.

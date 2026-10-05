@@ -1,8 +1,10 @@
 // Synthetic Claude Code transcript builder. Emits JSONL in the observed real format
 // (docs/format-notes.md) with internally consistent usage:
 //   context[n] = context[n-1] + output[n-1] + new tool results + new injected content
-// Tool result text uses 4 chars/token, so the char heuristic (3.5) and the context-delta method
+// Tool result text uses 4 chars/token, so the char heuristic (CHARS_PER_TOKEN) and the context-delta method
 // give distinguishable answers and tests can assert which one was used.
+
+import { CHARS_PER_TOKEN } from "../../src/core/tokens.js";
 
 export const FIXTURE_CHARS_PER_TOKEN = 4;
 
@@ -133,8 +135,14 @@ export class SessionBuilder {
 
   /** Injected system-reminder style attachment (context grows, not a human prompt). */
   reminder(tokens: number): this {
-    const text = "r".repeat(Math.round(tokens * 3.5));
+    const text = "r".repeat(Math.round(tokens * CHARS_PER_TOKEN)); // parser subtracts these exactly
     this.push({ ...this.base("attachment"), attachment: { type: "total_tokens_reminder" }, rendered: [text] });
+    this.st.pending += tokens;
+    return this;
+  }
+
+  /** Context grows by tokens that leave no trace in the transcript (makes context-delta unusable). */
+  invisible(tokens: number): this {
     this.st.pending += tokens;
     return this;
   }

@@ -1,7 +1,10 @@
 import type { ModelPrice, PricingTable, Usage } from "./types.js";
 
-/** Fallback chars-per-token ratio for code/log-like text (PRODUCT.md §8). */
-export const CHARS_PER_TOKEN = 3.5;
+/**
+ * Fallback chars-per-token ratio for tool output. PRODUCT.md suggested 3.5; context-delta measurements on
+ * real Claude Code sessions (Opus 5.x tokenizer) gave 2.4–3.1, median ≈ 2.6. See docs/decisions.md.
+ */
+export const CHARS_PER_TOKEN = 2.6;
 
 export const charTokens = (chars: number): number => Math.ceil(chars / CHARS_PER_TOKEN);
 
