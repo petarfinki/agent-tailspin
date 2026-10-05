@@ -50,18 +50,24 @@ function main(argv: string[]): number {
   }
   const dir = path.join(path.dirname(new URL(import.meta.url).pathname), "labels");
   const labels = loadLabels(dir);
-  const rows = precisionTable(labels);
-  const sessions = new Set(labels.map((l) => l.sessionHash)).size;
-  console.log(`${labels.length} labels across ${sessions} sessions\n`);
-  console.log("detector          labeled  TP  FP  unclear  precision");
-  for (const r of rows)
-    console.log(
-      `${r.detector.padEnd(18)}${String(r.labeled).padStart(7)}${String(r.tp).padStart(4)}${String(r.fp).padStart(4)}${String(r.unclear).padStart(9)}  ${r.precision === undefined ? "n/a" : `${(r.precision * 100).toFixed(0)}%`}`,
-    );
+  // Synthetic labels are TP by construction; never mix them into real-world precision.
+  const real = labels.filter((l) => !l.sessionHash.startsWith("synthetic:"));
+  const synthetic = labels.filter((l) => l.sessionHash.startsWith("synthetic:"));
+  const print = (title: string, set: Label[]) => {
+    console.log(`${title}: ${set.length} labels across ${new Set(set.map((l) => l.sessionHash)).size} sessions`);
+    console.log("detector          labeled  TP  FP  unclear  precision");
+    for (const r of precisionTable(set))
+      console.log(
+        `${r.detector.padEnd(18)}${String(r.labeled).padStart(7)}${String(r.tp).padStart(4)}${String(r.fp).padStart(4)}${String(r.unclear).padStart(9)}  ${r.precision === undefined ? "n/a" : `${(r.precision * 100).toFixed(0)}%`}`,
+      );
+    console.log("");
+  };
+  print("Real sessions", real);
+  print("Synthetic fixtures (sanity only, TP by construction)", synthetic);
   if (argv.includes("--gate")) {
-    const failing = rows.filter((r) => r.precision !== undefined && r.precision < PRECISION_GATE);
+    const failing = precisionTable(real).filter((r) => r.precision !== undefined && r.precision < PRECISION_GATE);
     if (failing.length) {
-      console.error(`\nRelease gate: ${failing.map((r) => r.detector).join(", ")} below ${PRECISION_GATE * 100}% precision.`);
+      console.error(`Release gate: ${failing.map((r) => r.detector).join(", ")} below ${PRECISION_GATE * 100}% precision on real sessions.`);
       return 1;
     }
   }
