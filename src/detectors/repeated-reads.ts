@@ -111,6 +111,7 @@ export const repeatedReads: Detector = {
         stepIndex: r.step,
         toolCallId: r.call.id,
         note: `Read ${shown} (~${fmtTokens(r.call.result!.estTokens)} tokens)${g.extra.includes(r) ? " · redundant" : " · first read"}`,
+        ...(g.extra.includes(r) ? { includesLifetime: true } : {}),
       }));
       findings.push({
         id: findingId("repeated-reads", evidence),

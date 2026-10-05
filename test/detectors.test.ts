@@ -156,3 +156,30 @@ describe("analyze", () => {
     expect(r.session.totals.estCostUsd).toBeGreaterThan(0);
   });
 });
+
+describe("cross-detector overlap", () => {
+  const filler = (b: ReturnType<typeof session>, n: number) => {
+    for (let i = 0; i < n; i++) b.step([read(`/w/filler${i}.ts`, { tokens: 200 })]);
+    return b;
+  };
+
+  it("keeps the lifetime finding for the first read of a re-read file", () => {
+    const b = session().user("x").read("/w/big.ts", { tokens: 20_000 });
+    filler(b, 3).read("/w/big.ts", { tokens: 20_000 }).read("/w/big.ts", { tokens: 20_000 });
+    const fs = run(filler(b, 30).text().build().jsonl).findings;
+    const d1 = fs.find((f) => f.detector === "repeated-reads")!;
+    const d2 = fs.filter((f) => f.detector === "output-lifetime");
+    const firstRead = d1.evidence[0]!.toolCallId;
+    expect(d2.map((f) => f.evidence[0]!.toolCallId)).toContain(firstRead);
+    // ...but not for the redundant copies, whose lifetime D1 already counts.
+    for (const e of d1.evidence.slice(1)) expect(d2.map((f) => f.evidence[0]!.toolCallId)).not.toContain(e.toolCallId);
+  });
+
+  it("keeps the lifetime finding for a huge failing output inside a failure loop", () => {
+    const b = session().user("x");
+    for (let i = 0; i < 3; i++) b.edit("/w/a.ts").bash("pnpm test", { fail: "AssertionError: boom", tokens: 9_000 });
+    const fs = run(filler(b, 30).text().build().jsonl).findings;
+    expect(fs.filter((f) => f.detector === "failure-loops")).toHaveLength(1);
+    expect(fs.filter((f) => f.detector === "output-lifetime").length).toBeGreaterThan(0);
+  });
+});

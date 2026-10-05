@@ -71,7 +71,7 @@ describe("html report", () => {
     for (let i = 0; i < 30; i++) b.step([read(`/w/m${i}.ts`, { tokens: 200 })]);
     b.step([bash("ls")]);
     const m = buildReportModel(analyze(parse(b.text().build().jsonl), { redact: true }), { version: "t" });
-    expect(m.findings[0]!.title).toContain("file_01.ts");
+    expect(m.findings.find((f) => f.detector === "repeated-reads")!.title).toContain("file_01.ts");
     expect(m.topOutputs[0]!.label).toBe("file_01.ts");
   });
 });

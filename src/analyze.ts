@@ -57,8 +57,9 @@ export function analyze(session: Session, opts: AnalyzeOptions = {}): Analysis {
   session.totals = { ...session.totals, ...sessionCost(session.usageByModel, pricing) };
 
   const raw = detectors.flatMap((d) => d.run(session, ctx));
-  // An output already named by another finding (e.g. a redundant read) isn't repeated as a lifetime finding.
-  const claimed = new Set(raw.filter((f) => f.detector !== "output-lifetime").flatMap((f) => f.evidence.map((e) => e.toolCallId)));
+  // Skip a lifetime finding only when another finding's impact already includes that output's lifetime
+  // (redundant read copies). Merely appearing as evidence elsewhere (a first read, a failing output) isn't enough.
+  const claimed = new Set(raw.flatMap((f) => f.evidence.filter((e) => e.includesLifetime).map((e) => e.toolCallId)));
   const all = raw.filter((f) => f.detector !== "output-lifetime" || !claimed.has(f.evidence[0]!.toolCallId));
   const min = CONF[opts.minConfidence ?? "medium"];
   const findings = all

@@ -99,6 +99,8 @@ export interface Evidence {
   stepIndex: number;
   toolCallId?: string;
   note: string; // short, redaction-safe
+  /** This finding's impact already includes the lifetime cost of this output (so output-lifetime skips it). */
+  includesLifetime?: boolean;
 }
 
 export interface Finding {

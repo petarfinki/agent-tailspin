@@ -273,7 +273,7 @@ const term = (t: string, d: string) => dl.append(h("dt", {}, t), h("dd", {}, d))
 term("Repeated reads", "The same file range was read again with no edit, file-changing command, external edit, subagent run, or compaction in between. Impact is the size of the redundant copies.");
 term("Output lifetime", "A tool output is re-sent with every later step until a compaction. Lifetime tokens = estimated size × later steps, priced at each step's measured cache-read ratio.");
 term("Failure loops", "The same action failed with the same normalized error at least 3 times, with an edit or an identical retry between attempts and no progress in between.");
-term("Estimates", "Per-output size is measured from the growth in context between steps (context-delta) where unambiguous; otherwise chars ÷ 2.6 (char-heuristic), or 1,600 tokens per image. The method is shown next to every number.");
+term("Estimates", "Per-output size is measured from the growth in context between steps (context-delta) where unambiguous; otherwise chars ÷ 2.6 (char-heuristic), or 1,600 tokens per image. The 2.6 ratio was calibrated on code-heavy sessions and varies with content. The method is shown next to every number.");
 term("Pricing", `List prices as of ${data.pricing.asOf}. ${data.pricing.source}`);
 app.append(
   h(

@@ -123,3 +123,21 @@ describe("parse", () => {
     void read;
   });
 });
+
+describe("token accounting invariants", () => {
+  it("totals equal the sum over unique message ids, for every fixture (parallel calls, rewinds, compaction)", async () => {
+    const { fixtures } = await import("../fixtures/synthetic/catalog.js");
+    for (const f of fixtures) {
+      const b = f.build();
+      const byId = new Map<string, number>();
+      for (const l of b.lines as Array<Record<string, any>>) {
+        const u = l.type === "assistant" && typeof l.message === "object" ? l.message.usage : undefined;
+        if (u) byId.set(l.message.id, u.input_tokens + u.output_tokens + u.cache_read_input_tokens + u.cache_creation_input_tokens);
+      }
+      const s = parse(b.jsonl);
+      if (f.name === "truncated-last-line") continue; // last message line is cut off on purpose
+      expect({ f: f.name, t: totalTokens(s.totals.usage) }).toEqual({ f: f.name, t: [...byId.values()].reduce((a, x) => a + x, 0) });
+      expect(s.steps.length + s.abandoned.stepCount).toBe(byId.size);
+    }
+  });
+});

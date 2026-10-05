@@ -16,7 +16,9 @@ A tool result returned after step N is first sent to the model at step N+1.
    attachments, meta messages). Parallel results share the delta in proportion to their character size.
    Discarded when: a human prompt or a compaction sits between N and N+1, the delta is ≤ 0, or it is
    more than 3× away from the char heuristic (ambiguous attribution).
-2. **char-heuristic**: `ceil(chars / 2.6)`. The 2.6 ratio was measured on real sessions (see decisions.md).
+2. **char-heuristic**: `ceil(chars / 2.6)`. The ratio was calibrated on code-heavy sessions (source files,
+   test and build logs) and will vary with content mix; prose, JSON, or minified output can be off by tens of
+   percent. It's only the fallback, and every number says which method produced it (see decisions.md).
 3. **image-default**: 1,600 tokens per image when it can't be measured. Findings built on it are `low`
    confidence and hidden by default.
 
@@ -67,6 +69,9 @@ char heuristic; `low` for image defaults.
 
 **Suggestions** are tool-specific (Read → line range or Grep; Bash → head/tail/grep or redirect; Grep →
 narrow the pattern). Tools without a justified suggestion get none.
+
+**Overlap:** skipped only for outputs whose lifetime another finding already counts (redundant read copies).
+The first read of a re-read file and large failing outputs in a failure loop are still reported.
 
 **Known limitations:** an output can be large *and necessary*. This detector says what it cost, not that
 it was a mistake. Very large outputs Claude Code persists to disk only cost their preview, which is what

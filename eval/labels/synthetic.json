@@ -48,5 +48,10 @@
     "sessionHash": "synthetic:demo",
     "findingId": "output-lifetime:f8612702",
     "label": "TP"
+  },
+  {
+    "sessionHash": "synthetic:demo",
+    "findingId": "output-lifetime:e31e2b06",
+    "label": "TP"
   }
 ]

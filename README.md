@@ -95,9 +95,11 @@ To label your own: `npm run eval -- --template <session-id> > eval/labels/privat
 ## What it doesn't do
 
 - It isn't a spend dashboard; use [ccusage](https://github.com/ryoppippi/ccusage) for that.
-  Totals come from the transcript only, so API calls Claude Code makes outside the transcript (e.g. title
-  generation, permission classifiers) are not included. On local sessions this came out 0–15% below
-  Claude Code's own cost tally.
+  Totals count each API request once. Against Claude Code's own cost tally on local sessions: sessions
+  without subagents matched within 0–5% (one to the cent); the two with subagents came out 13–15% lower.
+  That gap closes almost exactly if every streamed line of a subagent response is counted separately,
+  even though those lines share one request id. So Claude Code's tally appears to add up repeated
+  snapshots of the same request. This is an inference from the numbers, not confirmed billing behavior.
 - No LLM calls. Analysis is deterministic: the same transcript gives the same report.
 - It never edits your config or `CLAUDE.md`.
 - Claude Code only, for now. Subagent tokens are counted in totals, but detectors don't run on subagents yet.
