@@ -33,3 +33,8 @@
   breaks the chain (progress). Each consecutive pair needs an edit in between *or* an identical command.
 - **D3 in redacted mode** shows an error type only if it is a generic built-in name (TypeError, …);
   custom error class names can carry project names.
+- **No double-reporting:** an `output-lifetime` finding is dropped when its output already appears in
+  another finding's evidence (typically a redundant read). The lifetime cost of redundant reads is
+  already part of the repeated-reads summary.
+- **Default report path is the OS temp directory** (`$TMPDIR/agent-tailspin/report-<id>.html`), so running
+  the tool never drops files into the user's project. `--out` overrides.

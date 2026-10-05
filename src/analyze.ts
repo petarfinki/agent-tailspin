@@ -56,7 +56,10 @@ export function analyze(session: Session, opts: AnalyzeOptions = {}): Analysis {
   const ctx: DetectorContext = { pricing, redacted, displayPath, displayCommand, options: opts.detectorOptions ?? {} };
   session.totals = { ...session.totals, ...sessionCost(session.usageByModel, pricing) };
 
-  const all = detectors.flatMap((d) => d.run(session, ctx));
+  const raw = detectors.flatMap((d) => d.run(session, ctx));
+  // An output already named by another finding (e.g. a redundant read) isn't repeated as a lifetime finding.
+  const claimed = new Set(raw.filter((f) => f.detector !== "output-lifetime").flatMap((f) => f.evidence.map((e) => e.toolCallId)));
+  const all = raw.filter((f) => f.detector !== "output-lifetime" || !claimed.has(f.evidence[0]!.toolCallId));
   const min = CONF[opts.minConfidence ?? "medium"];
   const findings = all
     .filter((f) => CONF[f.confidence] >= min)

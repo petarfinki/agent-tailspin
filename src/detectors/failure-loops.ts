@@ -133,11 +133,11 @@ export const failureLoops: Detector = {
 
     return loops
       .sort((a, b) => a[0]!.step - b[0]!.step)
-      .map((chain) => buildFinding(session, chain, ctx));
+      .map((chain) => buildFinding(session, chain, editAt, ctx));
   },
 };
 
-function buildFinding(session: Session, chain: Event[], ctx: Parameters<Detector["run"]>[1]): Finding {
+function buildFinding(session: Session, chain: Event[], editsBefore: Map<Event, number>, ctx: Parameters<Detector["run"]>[1]): Finding {
   const first = chain[0]!;
   const last = chain[chain.length - 1]!;
   const sig = first.sig!;
@@ -150,7 +150,7 @@ function buildFinding(session: Session, chain: Event[], ctx: Parameters<Detector
   const usd = costs.every((c) => c !== undefined) ? costs.reduce<number>((a, c) => a + c!, 0) : undefined;
   const spanSteps = last.step - first.step + 1;
   const minutes = (Date.parse(steps[steps.length - 1]!.timestamp) - Date.parse(steps[0]!.timestamp)) / 60_000;
-  const blind = chain.every((e, i) => i === 0 || commandOf(e.call) === commandOf(chain[i - 1]!.call));
+  const blind = chain.every((e, i) => i === 0 || editsBefore.get(e) === editsBefore.get(chain[i - 1]!));
   const evidence: Evidence[] = chain.map((e) => ({
     stepIndex: e.step,
     toolCallId: e.call.id,
