@@ -1,6 +1,6 @@
 {
   "name": "agent-tailspin",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Flight recorder for Claude Code sessions: find retry loops, redundant reads, and context-bloating tool outputs. Fully local.",
   "license": "MIT",
   "repository": {
