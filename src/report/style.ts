@@ -45,5 +45,10 @@ tr:last-child td{border-bottom:0}
 .wrap{overflow-x:auto}
 .bar{height:6px;background:var(--accent);border-radius:3px;min-width:1px}
 .empty{background:var(--card);border:1px dashed var(--line);border-radius:10px;padding:18px;color:var(--muted)}
+.labelbar{display:flex;gap:12px;align-items:center;justify-content:space-between;margin:6px 0}
+.labels{display:flex;gap:6px;margin-top:8px}
+.lbtn{font:inherit;font-size:12.5px;cursor:pointer;background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:3px 10px}
+.lbtn[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+.lbtn:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 footer{margin-top:40px;font-size:12.5px;color:var(--muted)}footer dt{font-weight:600;color:var(--fg);margin-top:10px}footer dd{margin:2px 0 0}
 `;

@@ -51,3 +51,8 @@
   preserved messages (`compactMetadata.preservedMessages`) keep outputs alive across the boundary for D1 and
   D2; `file_unchanged` re-read stubs are ignored by D1; the fixture builder emits the observed shape
   (`compaction-manual-real-shape`). Auto-compaction remains unverified.
+- **`--label` report mode** (2026-10-16): TP/FP/unclear buttons per finding, verdicts in `localStorage`
+  (per session hash), and an "Export labels" download in the `eval/run.ts` format. Off by default so normal
+  and shared reports stay clean; defaults to `--min-confidence low` like `eval --template`. No free-text
+  notes, so an export carries nothing beyond finding titles already in the report. Labels other people send
+  must not count toward the release gate, which stays on the maintainer's own labels (PRODUCT.md §15).

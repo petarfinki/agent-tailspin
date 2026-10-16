@@ -2,6 +2,7 @@
 // All transcript-derived text goes through text nodes; no HTML string sinks are used.
 import type { ReportModel } from "./model.js";
 import type { Finding } from "../core/types.js";
+import { exportLabels, type Verdict } from "./labels.js";
 
 type Child = Node | string | number | null | undefined | false;
 const SVG = "http://www.w3.org/2000/svg";
@@ -167,6 +168,54 @@ function highlight(f: Finding | null): void {
 app.append(h("h2", {}, `Findings (${data.findings.length})`));
 if (!data.findings.length)
   app.append(h("div", { class: "empty" }, "No findings. Nothing in this session matched a detector at the selected confidence level. That's a good sign, not a bug."));
+// ---------- labeling (--label only) ----------
+// Verdicts persist per session in localStorage; storage can be unavailable (private mode, blocked file://).
+const L = data.labeling;
+const storeKey = L ? `tailspin-labels:${L.sessionHash}` : "";
+const verdicts: Record<string, Verdict> = {};
+if (L) {
+  try {
+    Object.assign(verdicts, JSON.parse(localStorage.getItem(storeKey) ?? "{}"));
+  } catch {
+    // start empty
+  }
+}
+const progress = h("span", { class: "impact", role: "status" });
+const updateProgress = () => (progress.textContent = `${data.findings.filter((f) => verdicts[f.id]).length} of ${data.findings.length} labeled`);
+if (L && data.findings.length) {
+  const exp = h("button", { type: "button", class: "lbtn" }, "Export labels");
+  exp.addEventListener("click", () => {
+    const blob = new Blob([JSON.stringify(exportLabels(L.sessionHash, data.findings, verdicts), null, 2) + "\n"], { type: "application/json" });
+    const a = h("a", { href: URL.createObjectURL(blob), download: `${L.sessionHash.replace(/[^\w-]/g, "-")}.json` });
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+  updateProgress();
+  app.append(
+    h("div", { class: "labelbar" }, progress, exp),
+    h("p", { class: "impact" }, "Labeling mode: TP = a real, avoidable problem; FP = wrong. Save the export to eval/labels/private/ and run npm run eval."),
+  );
+}
+function labelButtons(f: Finding): HTMLElement {
+  const group = h("div", { class: "labels", role: "group", "aria-label": "Label this finding" });
+  for (const v of ["TP", "FP", "unclear"] as const) {
+    const b = h("button", { type: "button", class: "lbtn", "aria-pressed": String(verdicts[f.id] === v) }, v);
+    b.addEventListener("click", () => {
+      if (verdicts[f.id] === v) delete verdicts[f.id];
+      else verdicts[f.id] = v;
+      group.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(verdicts[f.id] === x.textContent)));
+      try {
+        localStorage.setItem(storeKey, JSON.stringify(verdicts));
+      } catch {
+        // labels still export from memory
+      }
+      updateProgress();
+    });
+    group.append(b);
+  }
+  return group;
+}
+
 let active: string | null = null;
 for (const f of data.findings) {
   const btn = h("button", { type: "button", "aria-pressed": "false", title: "Highlight evidence on the timeline" }, f.title);
@@ -191,6 +240,7 @@ for (const f of data.findings) {
       h("p", {}, f.summary),
       h("p", { class: "impact" }, impact, " — ", f.impact.method),
       f.suggestion ? h("p", { class: "sugg" }, "Try: ", f.suggestion) : null,
+      L ? labelButtons(f) : null,
       h(
         "details",
         {},

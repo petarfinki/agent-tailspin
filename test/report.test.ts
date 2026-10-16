@@ -4,6 +4,8 @@ import { parse } from "../src/adapters/claude-code/parse.js";
 import { analyze } from "../src/analyze.js";
 import { buildHtml, embedJson } from "../src/report/build-html.js";
 import { buildReportModel } from "../src/report/model.js";
+import { exportLabels } from "../src/report/labels.js";
+import { hash } from "../src/core/text.js";
 import { bash, read, session } from "../fixtures/builder/index.js";
 import { buildDemo } from "../fixtures/demo/build.js";
 
@@ -78,5 +80,21 @@ describe("html report", () => {
     const m = buildReportModel(analyze(parse(b.text().build().jsonl), { redact: true }), { version: "t" });
     expect(m.findings.find((f) => f.detector === "repeated-reads")!.title).toContain("file_01.ts");
     expect(m.topOutputs[0]!.label).toBe("file_01.ts");
+  });
+
+  it("adds labeling only with --label, keyed the way eval/run.ts reads labels", () => {
+    const a = analyze(parse(buildDemo().jsonl), { minConfidence: "low" });
+    expect(buildReportModel(a, { version: "t" }).labeling).toBeUndefined();
+    expect(buildReportModel(a, { version: "t", label: true }).labeling).toEqual({ sessionHash: hash(a.session.id) });
+    expect(buildReportModel(a, { version: "t", label: true, synthetic: true }).labeling).toEqual({ sessionHash: "synthetic:demo" });
+  });
+
+  it("exports one label per finding, unlabeled as unclear", () => {
+    const findings = analyze(parse(buildDemo().jsonl), { minConfidence: "low" }).findings;
+    expect(findings.length).toBeGreaterThan(1);
+    const out = exportLabels("abc", findings, { [findings[0]!.id]: "FP" });
+    expect(out.map((l) => l.findingId)).toEqual(findings.map((f) => f.id));
+    expect(out.map((l) => l.label)).toEqual(["FP", ...findings.slice(1).map(() => "unclear")]);
+    expect(out[0]).toEqual({ sessionHash: "abc", findingId: findings[0]!.id, label: "FP", note: `${findings[0]!.confidence} · ${findings[0]!.title}` });
   });
 });

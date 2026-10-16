@@ -27,6 +27,7 @@ removals bump `schemaVersion`.
 | `topOutputs[]` | `{ step, toolCallId, tool, label, tokens, estMethod, laterSteps, lifetimeTokens, lifetimeCostUsd?, confidence }` | top 10 by lifetime tokens; `label` is a path/command (a token when redacted) |
 | `toolUsage[]` | `{ tool, calls, errors, estTokens, share }` | |
 | `pricing` | `{ asOf, source }` | |
+| `labeling?` | `{ sessionHash }` | only with `--label`; `sessionHash` matches `eval --template` (`synthetic:demo` for `--demo`) |
 
 ## Finding
 

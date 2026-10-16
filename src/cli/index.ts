@@ -34,7 +34,8 @@ Options:
   --no-open                don't open the report in a browser
   --json                   print findings and metrics as JSON, no HTML
   --pricing <file>         override the pricing table (JSON, same shape as the bundled one)
-  --min-confidence <lvl>   low | medium | high (default: medium)
+  --min-confidence <lvl>   low | medium | high (default: medium; low with --label)
+  --label                  add TP/FP buttons to findings and an "Export labels" download for npm run eval
   --verbose                show parse warnings
   --version, --help
 
@@ -50,6 +51,7 @@ const options = {
   pricing: { type: "string" },
   "min-confidence": { type: "string" },
   verbose: { type: "boolean" },
+  label: { type: "boolean" },
   since: { type: "string" },
   project: { type: "string" },
   limit: { type: "string" },
@@ -98,8 +100,8 @@ async function clientJs(): Promise<string> {
 
 async function report(text: { main: string; sidechains: string[] }, v: Values, synthetic: boolean): Promise<void> {
   const session = parse(text.main, { sidechains: text.sidechains });
-  const a = analyze(session, { pricing: loadPricing(v.pricing), minConfidence: minConfidence(v["min-confidence"]), redact: v.redact });
-  const model = buildReportModel(a, { version: VERSION, synthetic });
+  const a = analyze(session, { pricing: loadPricing(v.pricing), minConfidence: minConfidence(v["min-confidence"] ?? (v.label ? "low" : undefined)), redact: v.redact });
+  const model = buildReportModel(a, { version: VERSION, synthetic, label: v.label });
   if (v.json) {
     process.stdout.write(JSON.stringify(model, null, 2) + "\n");
     return;

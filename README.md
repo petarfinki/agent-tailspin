@@ -11,6 +11,16 @@ npx agent-tailspin            # latest session in the current directory
 npx agent-tailspin --demo     # try it on a bundled synthetic session
 ```
 
+Run it after a Claude Code session: you get a short summary in the terminal and an HTML report opens in
+your browser. Needs Node 20+.
+
+> **Not on npm yet.** Until the first release, run it from source:
+> ```sh
+> git clone https://github.com/petarfinki/agent-tailspin && cd agent-tailspin
+> npm install && npm run build
+> node dist/cli.js --demo                     # or: node dist/cli.js analyze <session-id>
+> ```
+
 **Fully local.** No network requests, no telemetry, no accounts. It reads `~/.claude/projects` and writes
 one HTML file to your temp directory. To check: the package has zero runtime dependencies, the source
 has no network code (`grep -rn "fetch\|http" src` finds only the SVG namespace string, the CSP tag, and a
@@ -55,7 +65,8 @@ agent-tailspin --demo
 | `--no-open` | don't open a browser |
 | `--json` | findings and metrics as JSON ([schema](docs/json-schema.md)), no HTML |
 | `--pricing <file>` | override the bundled pricing table |
-| `--min-confidence low\|medium\|high` | default `medium` |
+| `--min-confidence low\|medium\|high` | default `medium` (`low` with `--label`) |
+| `--label` | TP / FP / unclear buttons on each finding and an "Export labels" download ([Precision](#precision)) |
 | `--verbose` | show parse warnings |
 
 Exit codes: `0` success (including zero findings), `1` unexpected error, `2` bad usage or no sessions.
@@ -85,7 +96,7 @@ low-confidence and hides it by default. Precision is measured from hand labels (
 |---|---|---|---|
 | failure-loops | 0 | not measured yet | 4/4 |
 | repeated-reads | 0 | not measured yet | 3/3 |
-| output-lifetime | 0 | not measured yet | 3/3 |
+| output-lifetime | 7 | 88% (28 TP / 4 FP) | 5/5 |
 
 Synthetic numbers only show the fixtures behave as designed; they say nothing about real-world precision.
 Real-session numbers come from the maintainer labeling their own sessions (labels stay private; only
@@ -93,8 +104,10 @@ aggregates are published). A release is blocked if any detector falls below 80%.
 false-positive fixtures that must stay quiet (edits between reads, compaction, polling loops, changing
 errors, and others; see `fixtures/synthetic/catalog.ts`).
 
-To label your own: `npm run eval -- --template <session-id> > eval/labels/private/<name>.json`, set each
-`label` to `TP`, `FP`, or `unclear`, then run `npm run eval`.
+To label your own: `agent-tailspin analyze <session-id> --label`, click TP / FP / unclear on each finding
+(saved in your browser), click "Export labels", move the file to `eval/labels/private/`, and run
+`npm run eval`. Or by hand: `npm run eval -- --template <session-id> > eval/labels/private/<name>.json`
+and edit each `label`.
 
 ## What it doesn't do
 

@@ -3,6 +3,7 @@
 //   npm run eval                         precision table from eval/labels/*.json and eval/labels/private/*.json
 //   npm run eval -- --gate               same, exit 1 if any detector with labels is below 80%
 //   npm run eval -- --template <id|path> print a label template for one session's findings (stdout only)
+//   (or label in the report: agent-tailspin analyze <id> --label, then "Export labels")
 //
 // Label files: [{ "sessionHash": "...", "findingId": "repeated-reads:1a2b3c4d", "label": "TP" | "FP" | "unclear", "note"?: "..." }]
 // Real-session labels belong in eval/labels/private/ (gitignored). Commit only aggregate numbers.
@@ -13,15 +14,9 @@ import { parse } from "../src/adapters/claude-code/parse.js";
 import { analyze } from "../src/analyze.js";
 import { hash } from "../src/core/text.js";
 import { detectors } from "../src/detectors/index.js";
+import { exportLabels, type Label } from "../src/report/labels.js";
 
 export const PRECISION_GATE = 0.8;
-
-export interface Label {
-  sessionHash: string;
-  findingId: string;
-  label: "TP" | "FP" | "unclear";
-  note?: string;
-}
 
 export function precisionTable(labels: Label[]) {
   return detectors.map((d) => {
@@ -44,8 +39,7 @@ function main(argv: string[]): number {
     if ("error" in ref) return console.error(ref.error), 2;
     const text = readSession(ref);
     const a = analyze(parse(text.main, { sidechains: text.sidechains }), { minConfidence: "low" });
-    const out = a.findings.map((f) => ({ sessionHash: hash(a.session.id), findingId: f.id, label: "unclear", note: `${f.confidence} · ${f.title}` }));
-    console.log(JSON.stringify(out, null, 2));
+    console.log(JSON.stringify(exportLabels(hash(a.session.id), a.findings, {}), null, 2));
     return 0;
   }
   const dir = path.join(path.dirname(new URL(import.meta.url).pathname), "labels");

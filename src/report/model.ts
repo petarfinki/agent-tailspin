@@ -1,6 +1,7 @@
 // The serializable report model shared by --json and the HTML report. Isomorphic.
 // Only whitelisted, display-safe fields are copied out of the Session. Schema: docs/json-schema.md
 import type { Analysis } from "../analyze.js";
+import { hash } from "../core/text.js";
 import { totalTokens } from "../core/tokens.js";
 import type { Compaction, Confidence, EstMethod, Finding, Usage } from "../core/types.js";
 import { describeCall, outputLifetimes } from "../detectors/output-lifetime.js";
@@ -69,9 +70,11 @@ export interface ReportModel {
   }[];
   toolUsage: { tool: string; calls: number; errors: number; estTokens: number; share: number }[];
   pricing: { asOf: string; source: string };
+  /** Present only with --label: the report shows TP/FP buttons and exports labels for `npm run eval`. */
+  labeling?: { sessionHash: string };
 }
 
-export function buildReportModel(a: Analysis, meta: { version: string; synthetic?: boolean }): ReportModel {
+export function buildReportModel(a: Analysis, meta: { version: string; synthetic?: boolean; label?: boolean }): ReportModel {
   const raw = a.session;
   // Labels are computed from the raw session through the (possibly redacting) display functions,
   // then the session itself is redacted before anything else is read from it.
@@ -152,5 +155,7 @@ export function buildReportModel(a: Analysis, meta: { version: string; synthetic
       .map(([tool, u]) => ({ tool, ...u, share: u.estTokens / toolTokens }))
       .sort((x, y) => y.estTokens - x.estTokens || (x.tool < y.tool ? -1 : 1)),
     pricing: { asOf: a.pricing.pricingAsOf, source: a.pricing.source },
+    // Synthetic sessions get the prefix eval/run.ts uses to keep them out of real-world precision.
+    ...(meta.label ? { labeling: { sessionHash: meta.synthetic ? "synthetic:demo" : hash(raw.id) } } : {}),
   };
 }
