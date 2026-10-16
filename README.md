@@ -14,13 +14,6 @@ npx agent-tailspin --demo     # try it on a bundled synthetic session
 Run it after a Claude Code session: you get a short summary in the terminal and an HTML report opens in
 your browser. Needs Node 20+.
 
-> **Not on npm yet.** Until the first release, run it from source:
-> ```sh
-> git clone https://github.com/petarfinki/agent-tailspin && cd agent-tailspin
-> npm install && npm run build
-> node dist/cli.js --demo                     # or: node dist/cli.js analyze <session-id>
-> ```
-
 **Fully local.** No network requests, no telemetry, no accounts. It reads `~/.claude/projects` and writes
 one HTML file to your temp directory. To check: the package has zero runtime dependencies, the source
 has no network code (`grep -rn "fetch\|http" src` finds only the SVG namespace string, the CSP tag, and a
